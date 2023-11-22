@@ -2273,7 +2273,7 @@
                     <p class="text-gray-400 font-normal mt-4 subtitle-font-sz">
                       Connecting with your audience has never been easier with Flowbite straightforward email marketing and automation tools.
                     </p>
-                    <form action="#" class="max-w-screen-sm mx-auto m-6" onsubmit="handleSubmitSubscribeForm()" id="subscribe-form">
+                    <form action="#" class="max-w-screen-sm mx-auto m-6" name="subscribe-form" id="subscribe-form">
                       <div class="items-center flex mb-3">
                         <div class="w-full relative mr-3">
                           <label for="member_email" class="text-gray-900 font-medium text-sm leading-5 hidden mb-2">Email address</label>
@@ -2283,7 +2283,7 @@
                           <input class="text-gray-900 text-sm leading-5 bg-gray-50 border-gray-300 border w-full block pl-10 p-3 rounded-lg" placeholder="Enter your email" type="email" name="email" id="member_email" required="">
                         </div>
                         <div>
-                          <input type="submit" onclick="handleSubmitSubscribeForm(event)" value="Subscribe" class="bg-blue-700 text-white font-medium text-sm leading-5 text-center cursor-pointer px-5 py-3 rounded-lg" name="member_submit" id="member_submit">
+                            <input value="Subscribe" type="submit" onclick="handleSubmitSubscribeForm()" class="bg-blue-700 text-white font-medium text-sm leading-5 text-center cursor-pointer px-5 py-3 rounded-lg" id="member_submit">
                         </div>
                       </div>
                     </form>
@@ -2312,11 +2312,14 @@
         </div>
     </div>
 </div>
-<script async>
+<script>
     console.log('>>>Start Js Header');
-    const elements = document.querySelectorAll(".gallery-title");
     window.onload = () => {
         const active = "section3";
+        const form = document.getElementById("subscribe-form")
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+        });
         let count = 0;
         let interval = setInterval(function () {
             if (!active.includes("{%") && !active.includes("%}")) {
@@ -2339,11 +2342,56 @@
         document.querySelector('body').classList.toggle('show-responsive-nav');
     }
 
-    function handleSubmitSubscribeForm(event) {
-        event.preventDefault()
+    async function handleSubmitSubscribeForm() {
         let formEl = document.forms["subscribe-form"];
         let formData = new FormData(formEl);
-        console.log(formData)
+        const data = {};
+        for (let field of formData) {
+            const [key, value] = field;
+            data[key] = value
+        }
+        const body = {
+            grant_type: "client_credentials",
+            client_id: "7f06072ebf20ac944182e8ca964b4955",
+            client_secret: "db132e2593876927996cf4ee62513e50",
+        }
+        let headers = new Headers();
+        headers.append('Content-Type', 'application/json');
+        headers.append('Accept', 'application/json');
+        const response = await fetch("https://api.sendpulse.com/oauth/access_token", {
+            headers: headers,
+            method: 'POST',
+            body: JSON.stringify(body)
+        }).then((response) => {
+            if (response.ok) {
+                return response.json()
+            }
+            throw new Error('Something went wrong');
+        }).catch((e) => {
+            return {success: false}
+        })
+        const token = await response;
+
+        const emails = {
+            "emails": [
+                data["email"]
+            ]
+        }
+        headers.append("Authorization", `Bearer ${token.access_token}`)
+        const add = await fetch("https://api.sendpulse.com/addressbooks/428133/emails", {
+            headers: headers,
+            method: 'POST',
+            body: JSON.stringify(emails)
+        }).then((response) => {
+            if (response.ok) {
+                return response.json()
+            }
+            throw new Error('Something went wrong');
+        }).catch((e) => {
+            return {success: false}
+        })
+        const added = await add;
+        alert("Subscribe Successfully!")
     }
 
 </script>
